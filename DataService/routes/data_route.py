@@ -1,5 +1,5 @@
 from flask import Flask, Blueprint, request, jsonify
-from datetime import datetime
+from datetime import datetime , timezone
 import database_connection
 from pydantic import BaseModel, Field, ValidationError
 import logging
@@ -11,7 +11,7 @@ config = Config()
 class ReadingCreate(BaseModel):
     temperature: float = Field(ge=-50, le=80)
     humidity: float = Field(ge=0, le=100)
-    measured_at: datetime | None = None
+    measured_at: int #unix time;
 
 class Reading(BaseModel):
     id : int
@@ -65,7 +65,19 @@ def add_reading():
             500
         )
 
+    measured_at_formatted = None
+
     try:
+        print(reading.measured_at)
+        measured_at_formatted = datetime.fromtimestamp(reading.measured_at , timezone.utc)
+    except:
+        return error_response(
+            "timestamp invalid",
+            500
+        )
+
+    try:
+
         cur = conn.cursor()
         cur.execute(
         """
@@ -73,7 +85,7 @@ def add_reading():
         VALUES (%s, %s, %s)
         RETURNING id, measured_at, temperature, humidity, received_at;
         """,
-        (reading.temperature, reading.humidity, reading.measured_at)
+        (reading.temperature, reading.humidity, measured_at_formatted)
         )
 
         conn.commit()
