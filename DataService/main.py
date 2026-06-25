@@ -32,4 +32,4 @@ def getDbHealth():
 
 if __name__ == '__main__':
     app.register_blueprint(data_bp)
-    app.run()
+    app.run(host ="0.0.0.0")
