@@ -1,5 +1,5 @@
 from flask import Flask, Blueprint, request, jsonify
-from datetime import datetime , timezone
+from datetime import datetime , timezone, timedelta
 import database_connection
 from pydantic import BaseModel, Field, ValidationError
 import logging
@@ -80,12 +80,59 @@ def add_reading():
 
         cur = conn.cursor()
         cur.execute(
-        """
-        INSERT INTO "READINGS" (temperature, humidity, measured_at)
-        VALUES (%s, %s, %s)
-        RETURNING id, measured_at, temperature, humidity, received_at;
-        """,
-        (reading.temperature, reading.humidity, measured_at_formatted)
+            """
+            INSERT INTO "READINGS" (temperature, humidity, measured_at)
+            VALUES (%s, %s, %s)
+            RETURNING id, measured_at, temperature, humidity, received_at;
+            """,
+            (reading.temperature, reading.humidity, measured_at_formatted)
+        )
+
+        cur.execute(
+            """
+            INSERT INTO "DAILY_READING_SUMMARY" (
+                day,
+                temp_sum,
+                temp_count,
+                temp_min,
+                temp_max,
+                humidity_sum,
+                humidity_count,
+                humidity_min,
+                humidity_max
+            )
+            VALUES (
+                %s,
+                %s,
+                1,
+                %s,
+                %s,
+                %s,
+                1,
+                %s,
+                %s
+            )
+            ON CONFLICT (day)
+            DO UPDATE SET
+                temp_sum = "DAILY_READING_SUMMARY".temp_sum + EXCLUDED.temp_sum,
+                temp_count = "DAILY_READING_SUMMARY".temp_count + EXCLUDED.temp_count,
+                temp_min = LEAST("DAILY_READING_SUMMARY".temp_min, EXCLUDED.temp_min),
+                temp_max = GREATEST("DAILY_READING_SUMMARY".temp_max, EXCLUDED.temp_max),
+
+                humidity_sum = "DAILY_READING_SUMMARY".humidity_sum + EXCLUDED.humidity_sum,
+                humidity_count = "DAILY_READING_SUMMARY".humidity_count + EXCLUDED.humidity_count,
+                humidity_min = LEAST("DAILY_READING_SUMMARY".humidity_min, EXCLUDED.humidity_min),
+                humidity_max = GREATEST("DAILY_READING_SUMMARY".humidity_max, EXCLUDED.humidity_max);
+            """,
+            (
+                measured_at_formatted,
+                reading.temperature,
+                reading.temperature,
+                reading.temperature,
+                reading.humidity,
+                reading.humidity,
+                reading.humidity,
+            )
         )
 
         conn.commit()
@@ -131,7 +178,7 @@ def get_size():
         if "conn" in locals():
             conn.close()
 
-@data_bp.route("/page", methods=["GET"])
+@data_bp.route("/reading_page", methods=["GET"])
 def get_page():
     page = request.args.get("page", default=1, type=int)
     page_size = request.args.get("page_size", default=10, type=int)
@@ -187,4 +234,67 @@ def get_page():
 
 @data_bp.route("/get_day", methods=["GET"])
 def get_by_day():
-    return "done" , 201
+    date_value = request.args.get("date", type=str)
+
+    if not date_value:
+        return error_response("date is required in YYYY-MM-DD format", 400)
+
+    try:
+        day_start = datetime.strptime(date_value, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return error_response("date must be in YYYY-MM-DD format", 400)
+
+    day_end = day_start + timedelta(days=1)
+
+    try:
+        conn = database_connection.establish_connection()
+    except Exception:
+        return error_response("Database connection failed", 500)
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    COALESCE(SUM(temp_sum), 0),
+                    COALESCE(SUM(temp_count), 0),
+                    MIN(temp_min),
+                    MAX(temp_max),
+                    COALESCE(SUM(humidity_sum), 0),
+                    COALESCE(SUM(humidity_count), 0),
+                    MIN(humidity_min),
+                    MAX(humidity_max)
+                FROM "DAILY_READING_SUMMARY"
+                WHERE day >= %s AND day < %s;
+                """,
+                (day_start, day_end)
+            )
+
+            summary_row = cur.fetchone()
+
+        temp_sum, temp_count, temp_min, temp_max, humidity_sum, humidity_count, humidity_min, humidity_max = summary_row # type: ignore
+
+        temperature_avg = None
+        if temp_count:
+            temperature_avg = temp_sum / temp_count
+
+        humidity_avg = None
+        if humidity_count:
+            humidity_avg = humidity_sum / humidity_count
+
+        return jsonify({
+            "date": date_value,
+            "total_size": temp_count,
+            "temperature_avg": temperature_avg,
+            "temperature_min": temp_min,
+            "temperature_max": temp_max,
+            "humidity_avg": humidity_avg,
+            "humidity_min": humidity_min,
+            "humidity_max": humidity_max
+        }), 200
+
+    except Exception as error:
+        return error_response(str(error), 500)
+
+    finally:
+        conn.close()
