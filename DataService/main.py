@@ -13,12 +13,12 @@ app = Flask(__name__)
 
 @app.route("/health" , methods = ["GET"])
 def getHealth():
-    return jsonify({"health" : health})
+    return jsonify({"health" : health}) , 200
 
 
 @app.route("/version" , methods = ["GET"])
 def getVersion():
-    return jsonify({"version" : version})
+    return jsonify({"version" : version}), 200
 
 
 @app.route("/db-health" , methods = ["GET"])
@@ -30,6 +30,4 @@ def getDbHealth():
     except Exception as error:
         return jsonify({"database": "ERROR", "message": str(error)}), 500
 
-if __name__ == '__main__':
-    app.register_blueprint(data_bp)
-    app.run(host ="0.0.0.0")
+app.register_blueprint(data_bp)

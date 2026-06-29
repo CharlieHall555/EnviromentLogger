@@ -1,6 +1,7 @@
 #include "request_handler.h"
 #include <HTTPClient.h>
 #include "logger.h"
+#include "secrets.h"
 
 requestHandler::httpResponse requestHandler::postRequest(const postRequestParams& params)
 {
@@ -41,16 +42,8 @@ requestHandler::httpResponse requestHandler::getRequest(const getRequestParams &
         http.addHeader("Authorization", params.token);
     }
 
-    LOG("Sending:");
-
     int statusCode = http.GET();
-
-    LOG("Status code: ");
-    LOG(statusCode);
-
     String response = http.getString();
-    LOG("Response:");
-    LOG(response);
 
     http.end();
     return requestHandler::httpResponse{statusCode, response};
