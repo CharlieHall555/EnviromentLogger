@@ -10,7 +10,7 @@
 #include "timing.h"
 #include <Wire.h>
 #include "temp_logger.h"
-#include <optional>
+#include <optional> 
 
 TempSensor tempSensor;
 const int MAX_RETRY_QUEUE_SIZE = 10;
@@ -45,14 +45,12 @@ bool sendReading(TempReading reading)
 }
 
 void flushQueue(){
-
     TempReading current;
     
     while (retryQueue.take(current)){
         sendReading(current);
         delay(100);
     }
-
 }
 
 bool connected = false;
@@ -94,5 +92,8 @@ void loop()
     if (retryQueue.size() > 0) 
         flushQueue();
 
-    delay(LOGGING_INTERVAL * 1000);
+    wifi::disconnect();
+    LOG("Entering deep sleep...");
+    esp_deep_sleep(LOGGING_INTERVAL * 1000000);
+
 }
