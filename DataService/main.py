@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 import psycopg2
 from config import Config
 import database_connection
+from flask_cors import CORS
 
 from routes.data_route import data_bp
 
@@ -10,6 +11,7 @@ health : str = "OK"
 config = Config()
 
 app = Flask(__name__)
+cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
 @app.route("/health" , methods = ["GET"])
 def getHealth():

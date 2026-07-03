@@ -3,3 +3,4 @@ psycopg2-binary
 gunicorn
 pydantic==2.13.4
 python-dotenv==1.2.2
+flask-cors==6.0.0
