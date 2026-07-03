@@ -244,7 +244,7 @@ def get_by_day():
     except ValueError:
         return error_response("date must be in YYYY-MM-DD format", 400)
 
-    day_end = day_start + timedelta(days=1)
+    day_end = day_start + timedelta(days=1) 
 
     try:
         conn = database_connection.establish_connection()
