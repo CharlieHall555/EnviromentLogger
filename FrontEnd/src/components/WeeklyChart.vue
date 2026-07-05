@@ -29,6 +29,28 @@ const props = defineProps<{
   days: ReadingSummary[];
 }>();
 
+const temperatureAxisMin = 0;
+const temperatureAxisMax = 50;
+
+function parseLocalDate(dateString: string): Date {
+  const [yearPart, monthPart, dayPart] = dateString.split("-");
+  const year = Number(yearPart ?? "1970");
+  const month = Number(monthPart ?? "1");
+  const day = Number(dayPart ?? "1");
+
+  return new Date(year, month - 1, day);
+}
+
+function formatDayWithDate(dateString: string): string {
+  const parsed = parseLocalDate(dateString);
+  if (Number.isNaN(parsed.getTime())) {
+    return dateString;
+  }
+
+  const weekday = parsed.toLocaleDateString([], { weekday: "short" });
+  return `${weekday} (${dateString})`;
+}
+
 function toNumeric(value: number | string | null): number | null {
   if (value === null || value === "") {
     return null;
@@ -39,18 +61,8 @@ function toNumeric(value: number | string | null): number | null {
 }
 
 const chartData = computed<ChartData<"line">>(() => ({
-  labels: props.days.map((day) => day.date),
+  labels: props.days.map((day) => formatDayWithDate(day.date)),
   datasets: [
-    {
-      label: "Humidity Avg (%)",
-      data: props.days.map((day) => toNumeric(day.humidity_avg)),
-      borderColor: "#0284c7",
-      backgroundColor: "rgba(2, 132, 199, 0.2)",
-      pointBackgroundColor: "#0284c7",
-      tension: 0.35,
-      spanGaps: true,
-      yAxisID: "yHumidity",
-    },
     {
       label: "Temperature Avg (C)",
       data: props.days.map((day) => toNumeric(day.temperature_avg)),
@@ -88,20 +100,11 @@ const chartOptions = computed<ChartOptions<"line">>(() => ({
     },
   },
   scales: {
-    yHumidity: {
-      type: "linear",
-      position: "left",
-      title: {
-        display: true,
-        text: "Humidity (%)",
-      },
-    },
     yTemperature: {
       type: "linear",
-      position: "right",
-      grid: {
-        drawOnChartArea: false,
-      },
+      position: "left",
+      min: temperatureAxisMin,
+      max: temperatureAxisMax,
       title: {
         display: true,
         text: "Temperature (C)",

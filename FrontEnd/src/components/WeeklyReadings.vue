@@ -33,6 +33,16 @@ function addDays(dateString: string, days: number): string {
   return formatDate(date);
 }
 
+function formatDayWithDate(dateString: string): string {
+  const parsed = parseLocalDate(dateString);
+  if (Number.isNaN(parsed.getTime())) {
+    return dateString;
+  }
+
+  const weekday = parsed.toLocaleDateString([], { weekday: "short" });
+  return `${weekday} (${dateString})`;
+}
+
 const selectedDate = ref(formatDate(new Date()));
 const weeklySummary = ref<WeeklySummary | null>(null);
 const isLoading = ref(false);
@@ -64,6 +74,15 @@ function formatMetric(value: number | string | null): string {
   }
 
   return numericValue.toFixed(1);
+}
+
+function formatRange(
+  minValue: number | string | null,
+  maxValue: number | string | null
+): string {
+  const minText = formatMetric(minValue);
+  const maxText = formatMetric(maxValue);
+  return `[${minText} - ${maxText}]`;
 }
 
 function toNumeric(value: number | string | null): number | null {
@@ -193,38 +212,46 @@ onUnmounted(() => {
         <thead>
           <tr>
             <th>Date</th>
-            <th>Humidity Avg</th>
-            <th>Humidity Min</th>
-            <th>Humidity Max</th>
-            <th>Temperature Avg</th>
-            <th>Temperature Min</th>
-            <th>Temperature Max</th>
+            <th>Humidity</th>
+            <th>Temperature</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="day in weeklySummary?.days" :key="day.date">
-            <td>{{ day.date }}</td>
-            <td>{{ formatMetric(day.humidity_avg) }}</td>
-            <td>{{ formatMetric(day.humidity_min) }}</td>
-            <td>{{ formatMetric(day.humidity_max) }}</td>
+            <td>{{ formatDayWithDate(day.date) }}</td>
             <td>
-              <span class="temp-value" :class="getTemperatureClass(day.temperature_avg)">
-                {{ formatMetric(day.temperature_avg) }}
-              </span>
+              <div class="value-stack">
+                <span class="value-item">
+                  <span class="value-label">Avg</span>
+                  <span class="value-main">{{ formatMetric(day.humidity_avg) }}</span>
+                </span>
+                <span class="value-item">
+                  <span class="value-label">Range</span>
+                  <span class="value-range">
+                    {{ formatRange(day.humidity_min, day.humidity_max) }}
+                  </span>
+                </span>
+              </div>
             </td>
             <td>
-              <span class="temp-value" :class="getTemperatureClass(day.temperature_min)">
-                {{ formatMetric(day.temperature_min) }}
-              </span>
-            </td>
-            <td>
-              <span class="temp-value" :class="getTemperatureClass(day.temperature_max)">
-                {{ formatMetric(day.temperature_max) }}
-              </span>
+              <div class="value-stack">
+                <span class="value-item">
+                  <span class="value-label">Avg</span>
+                  <span class="temp-value" :class="getTemperatureClass(day.temperature_avg)">
+                    {{ formatMetric(day.temperature_avg) }}
+                  </span>
+                </span>
+                <span class="value-item">
+                  <span class="value-label">Range</span>
+                  <span class="value-range temp-range">
+                    {{ formatRange(day.temperature_min, day.temperature_max) }}
+                  </span>
+                </span>
+              </div>
             </td>
           </tr>
           <tr v-if="(weeklySummary?.days.length ?? 0) === 0">
-            <td colspan="7" class="empty">No readings found for this week.</td>
+            <td colspan="3" class="empty">No readings found for this week.</td>
           </tr>
         </tbody>
       </table>

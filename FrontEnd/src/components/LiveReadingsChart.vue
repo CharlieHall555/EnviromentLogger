@@ -28,7 +28,11 @@ ChartJS.register(
   LineElement
 );
 
-const pageSize = 10;
+const pageSizes = [10, 20, 40, 80] as const;
+const pageSizeIndex = ref(0);
+const pageSize = computed(() => pageSizes[pageSizeIndex.value]);
+const temperatureAxisMin = 0;
+const temperatureAxisMax = 50;
 const currentPage = ref(1);
 const readings = ref<SensorReading[]>([]);
 const isLoading = ref(false);
@@ -61,16 +65,6 @@ function formatLabel(dateString: string): string {
 const chartData = computed<ChartData<"line">>(() => ({
   labels: chartReadings.value.map((reading) => formatLabel(reading.measured_at)),
   datasets: [
-    {
-      label: "Humidity (%)",
-      data: chartReadings.value.map((reading) => toNumeric(reading.humidity)),
-      borderColor: "#0284c7",
-      backgroundColor: "rgba(2, 132, 199, 0.2)",
-      pointBackgroundColor: "#0284c7",
-      tension: 0.32,
-      spanGaps: true,
-      yAxisID: "yHumidity",
-    },
     {
       label: "Temperature (C)",
       data: chartReadings.value.map((reading) => toNumeric(reading.temperature)),
@@ -108,20 +102,11 @@ const chartOptions = computed<ChartOptions<"line">>(() => ({
     },
   },
   scales: {
-    yHumidity: {
-      type: "linear",
-      position: "left",
-      title: {
-        display: true,
-        text: "Humidity (%)",
-      },
-    },
     yTemperature: {
       type: "linear",
-      position: "right",
-      grid: {
-        drawOnChartArea: false,
-      },
+      position: "left",
+      min: temperatureAxisMin,
+      max: temperatureAxisMax,
       title: {
         display: true,
         text: "Temperature (C)",
@@ -141,7 +126,7 @@ async function loadPage(page: number) {
   errorMessage.value = "";
 
   try {
-    const response = await fetchReadingsPage(page, pageSize);
+    const response = await fetchReadingsPage(page, pageSize.value);
 
     if (response.readings.length === 0 && page > 1) {
       errorMessage.value = "No older readings available.";
@@ -169,6 +154,27 @@ function goForward() {
   loadPage(currentPage.value - 1);
 }
 
+const canZoomIn = computed(() => pageSizeIndex.value > 0);
+const canZoomOut = computed(() => pageSizeIndex.value < pageSizes.length - 1);
+
+function zoomIn() {
+  if (!canZoomIn.value || isLoading.value) {
+    return;
+  }
+
+  pageSizeIndex.value -= 1;
+  loadPage(1);
+}
+
+function zoomOut() {
+  if (!canZoomOut.value || isLoading.value) {
+    return;
+  }
+
+  pageSizeIndex.value += 1;
+  loadPage(1);
+}
+
 onMounted(() => {
   loadPage(1);
   refreshTimer = setInterval(() => {
@@ -189,6 +195,25 @@ onUnmounted(() => {
       <header class="top-row">
         <h1>Live Readings</h1>
         <div class="controls">
+          <button
+            class="nav-button"
+            type="button"
+            @click="zoomIn"
+            :disabled="isLoading || !canZoomIn"
+            aria-label="Zoom in to show fewer points"
+          >
+            -
+          </button>
+          <span class="page-indicator">{{ pageSize }} pts</span>
+          <button
+            class="nav-button"
+            type="button"
+            @click="zoomOut"
+            :disabled="isLoading || !canZoomOut"
+            aria-label="Zoom out to show more points"
+          >
+            +
+          </button>
           <button
             class="nav-button"
             type="button"

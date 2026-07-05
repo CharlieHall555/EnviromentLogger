@@ -317,7 +317,7 @@ main {
 .weekly-view td {
   padding: 12px;
   border-bottom: 1px solid #e8eef6;
-  text-align: left;
+  text-align: center;
   white-space: nowrap;
   font-size: 0.92rem;
 }
@@ -328,6 +328,44 @@ main {
   font-size: 0.84rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.value-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.value-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.value-label {
+  min-width: 44px;
+  text-align: right;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.value-main {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.value-range {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-family: "Consolas", "SFMono-Regular", Menlo, monospace;
+}
+
+.temp-range {
+  color: #9a3412;
 }
 
 .empty {
