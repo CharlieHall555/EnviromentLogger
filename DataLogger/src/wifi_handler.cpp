@@ -1,12 +1,13 @@
 #include <HTTPClient.h>
 #include <Arduino.h>
-#include "logger.h"
+#include "logger.hpp"
 #include "wifi_handler.h"
 
 String wifiName;
 String wifiPassword;
 
 const int TIMEOUT_MS = 5000;
+const int MAX_RETRIES = 5;
 
 void wifi::setCredentials(String _name, String _password)
 {
@@ -21,16 +22,21 @@ bool wifi::connect()
 
     LOG("Connecting to WiFi");
 
-    while (WiFi.status() != WL_CONNECTED)
+    for (int attempt = 1; attempt <= MAX_RETRIES; attempt++)
     {
-        delay(500);
+
+        if (WiFi.status() == WL_CONNECTED)
+        {
+            LOG("Connected!");
+            LOG("ESP32 IP: ");
+            LOG(WiFi.localIP());
+            return true;
+        }
+        delay(2500);
         LOG(".");
     }
 
-    LOG("Connected!");
-    LOG("ESP32 IP: ");
-    LOG(WiFi.localIP());
-    return true;
+    return false;
 }
 
 bool wifi::isConnected()

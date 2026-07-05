@@ -16,12 +16,10 @@ class PMSensor{
 
     private:    
         HardwareSerial pmsSerial; // UART2
-        bool sensorPresent();
-        bool ensureReady();
-        void connectToSensor();    
     public:
         PMSensor();
-        bool isReady();
+        bool sensorPresent();
         bool startSensor();
+        bool ensureReady();
         std::optional<PMReading> takeReading();
 };

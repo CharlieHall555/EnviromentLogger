@@ -1,6 +1,6 @@
 #include "request_handler.h"
 #include <HTTPClient.h>
-#include "logger.h"
+#include "logger.hpp"
 #include "secrets.h"
 
 requestHandler::httpResponse requestHandler::postRequest(const postRequestParams& params)

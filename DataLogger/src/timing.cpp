@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <timing.h>
 #include <request_handler.h>
-#include <logger.h>
+#include <logger.hpp>
 #include <json.hpp>
 
 using json = nlohmann::json;
@@ -33,7 +33,7 @@ void timing::setupBootTime(){
             LOG("Success setting up approxBootTime: " + String(approxBootTime));
             return;
         }else{
-            delay(5000);
+            delay(5000); 
         }
     }
 

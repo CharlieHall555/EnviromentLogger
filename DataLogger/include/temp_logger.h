@@ -17,13 +17,11 @@ class TempSensor{
 
     private:    
         Adafruit_BME280 sensor;
-        bool sensorPresent();
-        bool ensureReady();
-        void connectToSensor();    
     public:
         TempSensor();
-        bool isReady();
         bool startSensor();
+        bool ensureReady();
+        bool sensorPresent();
         std::optional<TempReading> takeReading();
 };
 

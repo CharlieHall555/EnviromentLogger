@@ -1,5 +1,5 @@
 #include "combined_reading.h"
-#include "logger.h"
+#include "logger.hpp"
 
 void dumpReading(CombinedReading combined)
 {

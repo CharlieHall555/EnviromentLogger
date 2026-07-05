@@ -8,19 +8,25 @@ import math
 
 config = Config()
 
-class ReadingCreate(BaseModel):
-    temperature: float = Field(ge=-50, le=80)
-    humidity: float = Field(ge=0, le=100)
-    measured_at: int #unix time;
+class ReadingAddBody(BaseModel):
+    measured_at: int = Field(ge=0)  # unix time
+    temperature: float | None = Field(default=None, ge=-50, le=80)
+    humidity: float | None = Field(default=None, ge=0, le=100)
+    pm1_0: int | None = Field(default=None, ge=0, le=10000)
+    pm2_5: int | None = Field(default=None, ge=0, le=10000)
+    pm10: int | None = Field(default=None, ge=0, le=10000)
 
 class Reading(BaseModel):
-    id : int
-    temperature: float = Field(ge=-50, le=80)
-    humidity: float = Field(ge=0, le=100)
-    measured_at: datetime | None = None
+    id: int
+    measured_at: datetime
     received_at: datetime | None = None
+    temperature: float | None = Field(default=None, ge=-50, le=80)
+    humidity: float | None = Field(default=None, ge=0, le=100)
+    pm1_0: int | None = Field(default=None, ge=0, le=10000)
+    pm2_5: int | None = Field(default=None, ge=0, le=10000)
+    pm10: int | None = Field(default=None, ge=0, le=10000)
 
-data_bp = Blueprint("data", __name__)
+data_bp = Blueprint("data", __name__, url_prefix="/data")
 
 def error_response(message: str, status_code: int = 500):
     response = {
@@ -31,7 +37,7 @@ def error_response(message: str, status_code: int = 500):
     return jsonify(response), status_code
 
 
-@data_bp.route("/add_reading", methods=["POST"])
+@data_bp.route("/add", methods=["POST"])
 def add_reading():
     data = request.get_json(silent=True)
 
@@ -47,7 +53,7 @@ def add_reading():
         return jsonify({"error": "Unauthorized"}), 401
 
     try:
-        reading = ReadingCreate.model_validate(data)
+        reading = ReadingAddBody.model_validate(data)
     except ValidationError as error:
         return error_response(
             "Request data is invalid",
@@ -81,11 +87,18 @@ def add_reading():
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO "READINGS" (temperature, humidity, measured_at)
-            VALUES (%s, %s, %s)
-            RETURNING id, measured_at, temperature, humidity, received_at;
+            INSERT INTO "READINGS" (temperature, humidity, pm10, pm1_0, pm2_5, measured_at)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING id, measured_at, temperature, humidity, pm10, pm1_0, pm2_5, received_at;
             """,
-            (reading.temperature, reading.humidity, measured_at_formatted)
+            (
+                reading.temperature,
+                reading.humidity,
+                reading.pm10,
+                reading.pm1_0,
+                reading.pm2_5,
+                measured_at_formatted,
+            )
         )
 
         cur.execute(
@@ -99,9 +112,33 @@ def add_reading():
                 humidity_sum,
                 humidity_count,
                 humidity_min,
-                humidity_max
+                humidity_max,
+                pm10_sum,
+                pm10_count,
+                pm10_min,
+                pm10_max,
+                pm1_0_sum,
+                pm1_0_count,
+                pm1_0_min,
+                pm1_0_max,
+                pm2_5_sum,
+                pm2_5_count,
+                pm2_5_min,
+                pm2_5_max
             )
             VALUES (
+                %s,
+                %s,
+                1,
+                %s,
+                %s,
+                %s,
+                1,
+                %s,
+                %s,
+                %s,
+                1,
+                %s,
                 %s,
                 %s,
                 1,
@@ -122,7 +159,22 @@ def add_reading():
                 humidity_sum = "DAILY_READING_SUMMARY".humidity_sum + EXCLUDED.humidity_sum,
                 humidity_count = "DAILY_READING_SUMMARY".humidity_count + EXCLUDED.humidity_count,
                 humidity_min = LEAST("DAILY_READING_SUMMARY".humidity_min, EXCLUDED.humidity_min),
-                humidity_max = GREATEST("DAILY_READING_SUMMARY".humidity_max, EXCLUDED.humidity_max);
+                humidity_max = GREATEST("DAILY_READING_SUMMARY".humidity_max, EXCLUDED.humidity_max),
+
+                pm10_sum = "DAILY_READING_SUMMARY".pm10_sum + EXCLUDED.pm10_sum,
+                pm10_count = "DAILY_READING_SUMMARY".pm10_count + EXCLUDED.pm10_count,
+                pm10_min = LEAST("DAILY_READING_SUMMARY".pm10_min, EXCLUDED.pm10_min),
+                pm10_max = GREATEST("DAILY_READING_SUMMARY".pm10_max, EXCLUDED.pm10_max),
+
+                pm1_0_sum = "DAILY_READING_SUMMARY".pm1_0_sum + EXCLUDED.pm1_0_sum,
+                pm1_0_count = "DAILY_READING_SUMMARY".pm1_0_count + EXCLUDED.pm1_0_count,
+                pm1_0_min = LEAST("DAILY_READING_SUMMARY".pm1_0_min, EXCLUDED.pm1_0_min),
+                pm1_0_max = GREATEST("DAILY_READING_SUMMARY".pm1_0_max, EXCLUDED.pm1_0_max),
+
+                pm2_5_sum = "DAILY_READING_SUMMARY".pm2_5_sum + EXCLUDED.pm2_5_sum,
+                pm2_5_count = "DAILY_READING_SUMMARY".pm2_5_count + EXCLUDED.pm2_5_count,
+                pm2_5_min = LEAST("DAILY_READING_SUMMARY".pm2_5_min, EXCLUDED.pm2_5_min),
+                pm2_5_max = GREATEST("DAILY_READING_SUMMARY".pm2_5_max, EXCLUDED.pm2_5_max);
             """,
             (
                 measured_at_formatted,
@@ -132,6 +184,15 @@ def add_reading():
                 reading.humidity,
                 reading.humidity,
                 reading.humidity,
+                reading.pm10,
+                reading.pm10,
+                reading.pm10,
+                reading.pm1_0,
+                reading.pm1_0,
+                reading.pm1_0,
+                reading.pm2_5,
+                reading.pm2_5,
+                reading.pm2_5,
             )
         )
 
@@ -178,7 +239,7 @@ def get_size():
         if "conn" in locals():
             conn.close()
 
-@data_bp.route("/reading_page", methods=["GET"])
+@data_bp.route("/page", methods=["GET"])
 def get_page():
     page = request.args.get("page", default=1, type=int)
     page_size = request.args.get("page_size", default=10, type=int)
@@ -198,7 +259,7 @@ def get_page():
 
         cur.execute(
             """
-            SELECT id, measured_at, temperature, humidity, received_at
+            SELECT id, measured_at, temperature, humidity, pm10, pm1_0, pm2_5, received_at
             FROM "READINGS"
             ORDER BY received_at DESC, id DESC
             LIMIT %s OFFSET %s;
@@ -216,7 +277,10 @@ def get_page():
                 "measured_at": row[1],
                 "temperature": row[2],
                 "humidity": row[3],
-                "received_at": row[4]
+                "pm10": row[4],
+                "pm1_0": row[5],
+                "pm2_5": row[6],
+                "received_at": row[7]
             })
 
         return jsonify({
@@ -263,7 +327,19 @@ def get_by_day():
                     COALESCE(SUM(humidity_sum), 0),
                     COALESCE(SUM(humidity_count), 0),
                     MIN(humidity_min),
-                    MAX(humidity_max)
+                    MAX(humidity_max),
+                    COALESCE(SUM(pm10_sum), 0),
+                    COALESCE(SUM(pm10_count), 0),
+                    MIN(pm10_min),
+                    MAX(pm10_max),
+                    COALESCE(SUM(pm1_0_sum), 0),
+                    COALESCE(SUM(pm1_0_count), 0),
+                    MIN(pm1_0_min),
+                    MAX(pm1_0_max),
+                    COALESCE(SUM(pm2_5_sum), 0),
+                    COALESCE(SUM(pm2_5_count), 0),
+                    MIN(pm2_5_min),
+                    MAX(pm2_5_max)
                 FROM "DAILY_READING_SUMMARY"
                 WHERE day >= %s AND day < %s;
                 """,
@@ -272,7 +348,28 @@ def get_by_day():
 
             summary_row = cur.fetchone()
 
-        temp_sum, temp_count, temp_min, temp_max, humidity_sum, humidity_count, humidity_min, humidity_max = summary_row # type: ignore
+        (
+            temp_sum,
+            temp_count,
+            temp_min,
+            temp_max,
+            humidity_sum,
+            humidity_count,
+            humidity_min,
+            humidity_max,
+            pm10_sum,
+            pm10_count,
+            pm10_min,
+            pm10_max,
+            pm1_0_sum,
+            pm1_0_count,
+            pm1_0_min,
+            pm1_0_max,
+            pm2_5_sum,
+            pm2_5_count,
+            pm2_5_min,
+            pm2_5_max,
+        ) = summary_row # type: ignore
 
         temperature_avg = None
         if temp_count:
@@ -282,6 +379,18 @@ def get_by_day():
         if humidity_count:
             humidity_avg = humidity_sum / humidity_count
 
+        pm10_avg = None
+        if pm10_count:
+            pm10_avg = pm10_sum / pm10_count
+
+        pm1_0_avg = None
+        if pm1_0_count:
+            pm1_0_avg = pm1_0_sum / pm1_0_count
+
+        pm2_5_avg = None
+        if pm2_5_count:
+            pm2_5_avg = pm2_5_sum / pm2_5_count
+
         return jsonify({
             "date": date_value,
             "total_size": temp_count,
@@ -290,7 +399,16 @@ def get_by_day():
             "temperature_max": temp_max,
             "humidity_avg": humidity_avg,
             "humidity_min": humidity_min,
-            "humidity_max": humidity_max
+            "humidity_max": humidity_max,
+            "pm10_avg": pm10_avg,
+            "pm10_min": pm10_min,
+            "pm10_max": pm10_max,
+            "pm1_0_avg": pm1_0_avg,
+            "pm1_0_min": pm1_0_min,
+            "pm1_0_max": pm1_0_max,
+            "pm2_5_avg": pm2_5_avg,
+            "pm2_5_min": pm2_5_min,
+            "pm2_5_max": pm2_5_max
         }), 200
 
     except Exception as error:

@@ -1,11 +1,12 @@
 #include "pm_logger.h"
-#include "logger.h"
+#include "logger.hpp"
 #include <optional>
 
 // PMS5003/7003 frame: 0x42 0x4D + 30 bytes (frame length word + 13 data words + checksum word)
 static const size_t PMS_FRAME_LEN = 32;
 static const uint8_t PMS_START1 = 0x42;
 static const uint8_t PMS_START2 = 0x4D;
+const int MAX_RETRIES = 3;
 
 bool readingSanityCheck(PMReading reading)
 {
@@ -19,21 +20,14 @@ bool readingSanityCheck(PMReading reading)
 
 PMSensor::PMSensor() : pmsSerial(2)
 {
+    pmsSerial.begin(9600, SERIAL_8N1, 16, 17);
+    pmsSerial.setTimeout(1500);
 }
 
 bool PMSensor::sensorPresent()
 {
-    // Flush stale bytes then wait briefly for fresh data
     while (pmsSerial.available()) pmsSerial.read();
-    delay(200);
-    LOG(pmsSerial.available() > 0);
     return pmsSerial.available() > 0;
-}
-
-void PMSensor::connectToSensor()
-{
-    pmsSerial.begin(9600, SERIAL_8N1, 16, 17);
-    pmsSerial.setTimeout(1500);
 }
 
 bool PMSensor::ensureReady()
@@ -49,26 +43,21 @@ bool PMSensor::ensureReady()
     }
 }
 
-bool PMSensor::isReady()
-{
-    return sensorPresent();
-}
-
 bool PMSensor::startSensor()
 {
-    connectToSensor();
 
-    for (int attempt = 1; attempt <= 10; attempt++)
+    for (int attempt = 1; attempt <= MAX_RETRIES; attempt++)
     {
         LOG("Starting PM sensor, attempt ");
         LOG(attempt);
+        dumpMemoryState();
 
         if (sensorPresent())
         {
             LOG("PM sensor ready!");
             return true;
         }
-        delay(500);
+        delay(2500);
     }
     return false;
 }

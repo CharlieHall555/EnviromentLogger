@@ -1,11 +1,12 @@
 #include "temp_logger.h"
-#include "logger.h"
+#include "logger.hpp"
 #include <Wire.h>
 #include <Adafruit_BME280.h>
 #include "timing.h"
 #include <optional>
 
 const uint8_t address = 0x76;
+const int MAX_RETRIES = 3;
 
 bool readingSanityCheck(TempReading reading)
 {
@@ -28,7 +29,7 @@ bool bmePresent()
 bool TempSensor::sensorPresent()
 {
     Wire.beginTransmission(0x76);
-    return Wire.endTransmission() == 0;
+    return Wire.endTransmission() == 0 && takeReading().has_value();
 }
 
 bool TempSensor::ensureReady()
@@ -48,10 +49,6 @@ TempSensor::TempSensor()
 {
 }
 
-bool TempSensor::isReady()
-{
-    return sensorPresent();
-}
 
 bool TempSensor::startSensor()
 {
@@ -66,15 +63,13 @@ bool TempSensor::startSensor()
             return true;
         }
 
-        delay(500);
+        delay(2500);
     }
     return false;
 }
 
 std::optional<TempReading> TempSensor::takeReading()
 {
-
-    ensureReady();
 
     float temp = sensor.readTemperature();
     float hum = sensor.readHumidity();
