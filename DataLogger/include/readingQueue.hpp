@@ -1,16 +1,16 @@
 #pragma once
-#include "temp_logger.h"
+#include "combined_reading.h"
 
 template<int QueueSize>
 class ReadingQueue {
     private:
-        TempReading readings[QueueSize];
+        CombinedReading readings[QueueSize];
         int head = 0;
         int tail = 0;
         int count = 0;
     public:
-        void add(TempReading newReading);
-        bool take(TempReading& output);
+        void add(CombinedReading newReading);
+        bool take(CombinedReading& output);
         bool take();
         int size();
         void clear();
@@ -18,7 +18,7 @@ class ReadingQueue {
 };
 
 template <int QueueSize>
-inline void ReadingQueue<QueueSize>::add(TempReading newReading)
+inline void ReadingQueue<QueueSize>::add(CombinedReading newReading)
 {
 
     if (tail == head && count != 0){
@@ -31,7 +31,7 @@ inline void ReadingQueue<QueueSize>::add(TempReading newReading)
 }
 
 template<int QueueSize>
-inline bool ReadingQueue<QueueSize>::take(TempReading& output)
+inline bool ReadingQueue<QueueSize>::take(CombinedReading& output)
 {
     if (count == 0) {
         return false;

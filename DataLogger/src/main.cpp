@@ -10,14 +10,24 @@
 #include "timing.h"
 #include <Wire.h>
 #include "temp_logger.h"
-#include <optional> 
+#include <optional>
+#include <pm_logger.h>
+#include "combined_reading.h"
 
 TempSensor tempSensor;
+PMSensor pmSensor;
 const int MAX_RETRY_QUEUE_SIZE = 10;
 RTC_DATA_ATTR ReadingQueue<MAX_RETRY_QUEUE_SIZE> retryQueue;
-const int LOGGING_INTERVAL = 60 * 10; //seconds
+const int LOGGING_INTERVAL = 60 * 10; // seconds
 
-void addReadingToRetryQueue(TempReading reading){
+#ifdef DEBUG
+#define SLEEP(x) delay(x * 1000);
+#else
+#define SLEEP(x) esp_deep_sleep(x * 1000000);
+#endif
+
+void addReadingToRetryQueue(CombinedReading reading)
+{
 
     LOG("Adding reading to retry queue.");
 
@@ -26,9 +36,9 @@ void addReadingToRetryQueue(TempReading reading){
     {
         retryQueue.take();
     }
-}   
+}
 
-bool sendReading(TempReading reading)
+int sendReading(CombinedReading reading)
 {
     String jsonBody = "{";
     jsonBody += "\"temperature\":" + String(reading.temp, 2) + ",";
@@ -40,14 +50,15 @@ bool sendReading(TempReading reading)
 
     requestHandler::httpResponse response = requestHandler::postRequest({API_URL, jsonBody, API_TOKEN});
 
-    if (response.code >= 200 && response.code < 300) return true;
-    else return false;
+    return response.code;
 }
 
-void flushQueue(){
-    TempReading current;
-    
-    while (retryQueue.take(current)){
+void flushQueue()
+{
+    CombinedReading current;
+
+    while (retryQueue.take(current))
+    {
         sendReading(current);
         delay(100);
     }
@@ -62,6 +73,7 @@ void setup()
     Wire.setClock(100000);
     wifi::setCredentials(WIFI_NAME, WIFI_PASSWORD);
     tempSensor.startSensor();
+    pmSensor.startSensor();
 
     while (wifi::isConnected() == false)
     {
@@ -75,25 +87,44 @@ void setup()
     timing::setupBootTime();
 }
 
+bool shouldRetry(int returnCode)
+{
+    if (returnCode == 422) // body is deformed there is no real point of retrying.
+        return false;
+    else if (returnCode >= 200 && returnCode <= 299)
+        return false;
+    else
+        return true;
+}
+
 void loop()
 {
 
-    bool hasWifi = wifi::ensureConnection();
-    std::optional<TempReading> newReading = tempSensor.takeReading();
+    while (pmSensor.isReady() == false)
+        delay(100);
+    while (tempSensor.isReady() == false)
+        delay(100);
 
-    if (hasWifi && newReading.has_value())
+    bool hasWifi = wifi::ensureConnection();
+    std::optional<TempReading> nextTempReading = tempSensor.takeReading();
+    std::optional<PMReading> nextPMReading = pmSensor.takeReading();
+
+    if (hasWifi && nextTempReading.has_value() && nextPMReading.has_value())
     {
-        bool successSend = sendReading(newReading.value());
-        if (successSend == false){
-            addReadingToRetryQueue(newReading.value());
+        CombinedReading nextReading = constructCombined(nextTempReading.value(), nextPMReading.value());
+        dumpReading(nextReading);
+        int responseCode = sendReading(nextReading);
+        bool retry = shouldRetry(responseCode);
+        if (retry)
+        {
+            addReadingToRetryQueue(nextReading);
         }
     }
 
-    if (retryQueue.size() > 0) 
+    if (retryQueue.size() > 0)
         flushQueue();
 
     wifi::disconnect();
     LOG("Entering deep sleep...");
-    esp_deep_sleep(LOGGING_INTERVAL * 1000000);
-
+    SLEEP(LOGGING_INTERVAL);
 }

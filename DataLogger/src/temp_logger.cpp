@@ -50,7 +50,7 @@ TempSensor::TempSensor()
 
 bool TempSensor::isReady()
 {
-    return false;
+    return sensorPresent();
 }
 
 bool TempSensor::startSensor()

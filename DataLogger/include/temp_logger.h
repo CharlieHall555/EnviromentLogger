@@ -25,7 +25,5 @@ class TempSensor{
         bool isReady();
         bool startSensor();
         std::optional<TempReading> takeReading();
-
-
 };
 
