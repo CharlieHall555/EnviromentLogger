@@ -70,9 +70,9 @@ bool LoggerSystem::takeReading(CombinedReading &reading)
 {
     debug::quickLog("Taking sensor readings...");
 
-    std::optional<TempReading> temp = tempSensor.takeReading();
-    std::optional<PMReading> pm = pmSensor.takeReading();
     int time = timing::unixNow();
+    std::optional<TempReading> temp = tempSensor.takeReading();
+    std::optional<PMReading> pm = pmSensor.takeAverageReading(3 , 1000);
     
     if (tempSensor.sensorPresent() == false && pmSensor.isSendingData() == false) 
         return false;

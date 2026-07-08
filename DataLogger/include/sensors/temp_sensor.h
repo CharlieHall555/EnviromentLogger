@@ -4,10 +4,8 @@
 #include <Adafruit_BME280.h>
 
 struct TempReading {
-
     float temp;
     float hum;
-
 };
 
 class TempSensor{

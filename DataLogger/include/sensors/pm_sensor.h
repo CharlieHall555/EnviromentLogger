@@ -3,11 +3,9 @@
 #include <optional>
 
 struct PMReading {
-
     int _1;
     int _2_5;
     int _10;
-
 };
 
 
@@ -23,7 +21,9 @@ class PMSensor{
         bool startSensor();
         bool ensureReady();
         std::optional<PMReading> takeReading();
+        std::optional<PMReading> takeAverageReading(int samples, int delay);
         static bool readingSanityCheck(const PMReading &reading);
+
     private:    
         HardwareSerial pmsSerial; // UART2
         int startTime = 0;

@@ -38,6 +38,7 @@ int PMSensor::timeActive()
 void PMSensor::wake() {
     gpio_hold_dis(GPIO_NUM_12);
     digitalWrite(SET_PIN, HIGH);
+    startTime = millis() / 1000;
 }
 
 void PMSensor::sleep() {
@@ -111,7 +112,45 @@ std::optional<PMReading> PMSensor::takeReading()
     return std::nullopt;
 }
 
+std::optional<PMReading> PMSensor::takeAverageReading(int samples , int delayTime=1000)
+{
+    int pm1 = 0;
+    int pm25 = 0;
+    int pm10 = 0;
+    int valid = 0;
+
+    for (int i = 0; i < samples; i++) {
+        auto reading = takeReading();
+
+        if (reading.has_value()) {
+            pm1 += reading->_1;
+            pm25 += reading->_2_5;
+            pm10 += reading->_10;
+            valid++;
+        }
+
+        delay(delayTime);
+    }
+
+    if (valid == 0) {
+        return std::nullopt;
+    }
+
+    return PMReading{
+        pm1 / valid,
+        pm25 / valid,
+        pm10 / valid
+    };
+}
+
 bool PMSensor::ensureReady()
 {
-    return false;
-}
+    wake();
+
+    // Give PMS sensor time to stabilise after waking.
+    if (timeActive() < 30) {
+        delay((30 - timeActive()) * 1000);
+    }
+
+    return isSendingData();
+}   
