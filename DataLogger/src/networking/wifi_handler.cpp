@@ -1,50 +1,40 @@
 #include <HTTPClient.h>
 #include <Arduino.h>
-#include "logger.hpp"
-#include "wifi_handler.h"
+#include "debug.h"
+#include "networking/wifi_handler.h"
 
-String wifiName;
-String wifiPassword;
-
-const int TIMEOUT_MS = 5000;
-const int MAX_RETRIES = 5;
-
-void wifi::setCredentials(String _name, String _password)
+void WiFiHandler::setCredentials(const String &name, const String &password)
 {
-    wifiName = _name;
-    wifiPassword = _password;
+    wifiName = name;
+    wifiPassword = password;
 }
 
-bool wifi::connect()
+bool WiFiHandler::connect()
 {
     WiFi.mode(WIFI_STA);
     WiFi.begin(wifiName, wifiPassword);
 
-    LOG("Connecting to WiFi");
 
     for (int attempt = 1; attempt <= MAX_RETRIES; attempt++)
     {
 
         if (WiFi.status() == WL_CONNECTED)
         {
-            LOG("Connected!");
-            LOG("ESP32 IP: ");
-            LOG(WiFi.localIP());
             return true;
         }
-        delay(2500);
-        LOG(".");
+        delay(retryTime);
     }
 
+    failedAttempts++;
     return false;
 }
 
-bool wifi::isConnected()
+bool WiFiHandler::isConnected()
 {
     return WiFi.status() == WL_CONNECTED;
 }
 
-bool wifi::ensureConnection()
+bool WiFiHandler::ensureConnection()
 {
     if (isConnected() == false)
         return connect();
@@ -52,7 +42,7 @@ bool wifi::ensureConnection()
         return true;
 }
 
-void wifi::disconnect()
+void WiFiHandler::disconnect()
 {
     WiFi.disconnect(true); // disconnect and erase current connection from RAM
     WiFi.mode(WIFI_OFF);

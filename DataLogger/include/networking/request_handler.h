@@ -20,6 +20,8 @@ namespace requestHandler{
         String raw;
     };
 
+    bool responseSuccess(int code);
+
     httpResponse postRequest(const postRequestParams& params);
     httpResponse getRequest(const getRequestParams& params);
 

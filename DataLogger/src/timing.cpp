@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <timing.h>
-#include <request_handler.h>
-#include <logger.hpp>
+#include "networking/request_handler.h"
 #include <json.hpp>
 
 using json = nlohmann::json;
@@ -17,24 +16,17 @@ int timing::getApproxBootTime(){
     return approxBootTime;
 }
 
-void timing::setupBootTime(){
-
+bool timing::setupBootTime(){
     bool success = false;
 
-    while (!success){
-        requestHandler::httpResponse response = requestHandler::getRequest(
-            {"https://aisenseapi.com/services/v1/timestamp"
-        });
+    requestHandler::httpResponse response = requestHandler::getRequest(
+        {"https://aisenseapi.com/services/v1/timestamp"});
 
-        if (response.code == 200){
-            json data = json::parse(response.raw);
-            int value = data.at("timestamp").get<int>();
-            approxBootTime = value - unixNow();
-            LOG("Success setting up approxBootTime: " + String(approxBootTime));
-            return;
-        }else{
-            delay(5000); 
-        }
+    if (response.code == 200){
+        json data = json::parse(response.raw);
+        int value = data.at("timestamp").get<int>();
+        approxBootTime = value - unixNow();
+        return true;
     }
-
+    return false;
 }

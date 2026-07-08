@@ -4,7 +4,7 @@ namespace timing
 {
 
     /// @brief Attempts to take an approximate reading of device unix boot time, yields until successful.
-    void setupBootTime();
+    bool setupBootTime();
 
     /// @brief Returns an approximate reading of device unix boot time.
     int getApproxBootTime();

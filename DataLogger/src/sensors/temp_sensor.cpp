@@ -1,14 +1,13 @@
-#include "temp_logger.h"
-#include "logger.hpp"
+#include "sensors/temp_sensor.h"
 #include <Wire.h>
 #include <Adafruit_BME280.h>
-#include "timing.h"
 #include <optional>
+#include "debug.h"
 
 const uint8_t address = 0x76;
 const int MAX_RETRIES = 3;
 
-bool readingSanityCheck(TempReading reading)
+bool TempSensor::readingSanityCheck(const TempReading& reading)
 {
     if (isnan(reading.temp) || isnan(reading.hum))
         return false;
@@ -40,7 +39,6 @@ bool TempSensor::ensureReady()
     }
     else
     {
-        LOG("Connection to sensor lost, Reconnecting...");
         return TempSensor::startSensor();
     }
 }
@@ -49,17 +47,20 @@ TempSensor::TempSensor()
 {
 }
 
+bool TempSensor::setup()
+{
+    Wire.begin();
+    return TempSensor::startSensor();
+}
+
 
 bool TempSensor::startSensor()
 {
-    for (int attempt = 1; attempt <= 10; attempt++)
+    for (int attempt = 1; attempt <= MAX_RETRIES; attempt++)
     {
-        LOG("Starting BME280 attempt ");
-        LOG(attempt);
 
         if (sensor.begin(address, &Wire))
         {
-            LOG("BME280 started!");
             return true;
         }
 
@@ -77,9 +78,8 @@ std::optional<TempReading> TempSensor::takeReading()
     TempReading output;
     output.temp = temp;
     output.hum = hum;
-    output.time = timing::unixNow();
 
-    if (readingSanityCheck(output))
+    if (TempSensor::readingSanityCheck(output))
         return output;
     else
         return std::nullopt;

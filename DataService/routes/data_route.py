@@ -37,6 +37,13 @@ def error_response(message: str, status_code: int = 500):
     return jsonify(response), status_code
 
 
+def round_two_decimals(value: float | None) -> float | None:
+    if value is None:
+        return None
+
+    return round(value, 2)
+
+
 @data_bp.route("/add", methods=["POST"])
 def add_reading():
     data = request.get_json(silent=True)
@@ -82,6 +89,9 @@ def add_reading():
             500
         )
 
+    temperature = round_two_decimals(reading.temperature)
+    humidity = round_two_decimals(reading.humidity)
+
     try:
 
         cur = conn.cursor()
@@ -92,8 +102,8 @@ def add_reading():
             RETURNING id, measured_at, temperature, humidity, pm10, pm1_0, pm2_5, received_at;
             """,
             (
-                reading.temperature,
-                reading.humidity,
+                temperature,
+                humidity,
                 reading.pm10,
                 reading.pm1_0,
                 reading.pm2_5,
@@ -178,12 +188,12 @@ def add_reading():
             """,
             (
                 measured_at_formatted,
-                reading.temperature,
-                reading.temperature,
-                reading.temperature,
-                reading.humidity,
-                reading.humidity,
-                reading.humidity,
+                temperature,
+                temperature,
+                temperature,
+                humidity,
+                humidity,
+                humidity,
                 reading.pm10,
                 reading.pm10,
                 reading.pm10,

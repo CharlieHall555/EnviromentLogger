@@ -1,64 +1,68 @@
-#include "pm_logger.h"
-#include "logger.hpp"
+#include "sensors/pm_sensor.h"
+#include "debug.h"
+#include "Arduino.h"
 #include <optional>
 
-// PMS5003/7003 frame: 0x42 0x4D + 30 bytes (frame length word + 13 data words + checksum word)
 static const size_t PMS_FRAME_LEN = 32;
 static const uint8_t PMS_START1 = 0x42;
 static const uint8_t PMS_START2 = 0x4D;
-const int MAX_RETRIES = 3;
+static const int SET_PIN = 12;
 
-bool readingSanityCheck(PMReading reading)
+PMSensor::PMSensor() : pmsSerial(2){}
+
+bool PMSensor::readingSanityCheck(const PMReading &reading)
 {
-    if (reading._1 < 0 || reading._1 > 1000)   return false;
-    if (reading._2_5 < 0 || reading._2_5 > 1000) return false;
-    if (reading._10 < 0 || reading._10 > 1000)  return false;
-    if (reading._2_5 < reading._1)              return false;
-    if (reading._10 < reading._2_5)             return false;
+    if (reading._1 < 0 || reading._2_5 < 0 || reading._10 < 0)
+        return false;
+    if (reading._1 > 1000 || reading._2_5 > 1000 || reading._10 > 1000)
+        return false;
     return true;
 }
 
-PMSensor::PMSensor() : pmsSerial(2)
+bool PMSensor::setup()
 {
+    pinMode(SET_PIN, OUTPUT);
+    digitalWrite(SET_PIN, HIGH);
+    wake();
+    startTime = floor(millis() / 1000);
     pmsSerial.begin(9600, SERIAL_8N1, 16, 17);
     pmsSerial.setTimeout(1500);
+    return true;
 }
 
-bool PMSensor::sensorPresent()
+int PMSensor::timeActive()
 {
-    while (pmsSerial.available()) pmsSerial.read();
-    return pmsSerial.available() > 0;
+    return floor(millis() / 1000) - startTime;
 }
 
-bool PMSensor::ensureReady()
-{
-    if (sensorPresent())
-    {
-        return true;
-    }
-    else
-    {
-        LOG("Connection to PM sensor lost, reconnecting...");
-        return PMSensor::startSensor();
-    }
+void PMSensor::wake() {
+    gpio_hold_dis(GPIO_NUM_12);
+    digitalWrite(SET_PIN, HIGH);
 }
 
-bool PMSensor::startSensor()
+void PMSensor::sleep() {
+    digitalWrite(SET_PIN, LOW);
+    gpio_hold_en(GPIO_NUM_12);
+    gpio_deep_sleep_hold_en();
+}
+
+bool PMSensor::isSendingData()
 {
+    uint32_t start = millis();
 
-    for (int attempt = 1; attempt <= MAX_RETRIES; attempt++)
+    while (millis() - start < 1000)
     {
-        LOG("Starting PM sensor, attempt ");
-        LOG(attempt);
-        dumpMemoryState();
-
-        if (sensorPresent())
+        if (pmsSerial.available() >= 32)
         {
-            LOG("PM sensor ready!");
-            return true;
+            if (pmsSerial.peek() == 0x42)
+            {
+                return true;
+            }
+
+            pmsSerial.read(); // discard bad byte
         }
-        delay(2500);
     }
+
     return false;
 }
 
@@ -105,4 +109,9 @@ std::optional<PMReading> PMSensor::takeReading()
     }
 
     return std::nullopt;
+}
+
+bool PMSensor::ensureReady()
+{
+    return false;
 }
