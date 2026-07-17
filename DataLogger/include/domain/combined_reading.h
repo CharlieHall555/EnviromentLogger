@@ -1,8 +1,7 @@
 #pragma once
 
-#include "domain/combined_reading.h"
-#include "sensors/pm_sensor.h"
-#include "sensors/temp_sensor.h"
+struct TempReading;
+struct PMReading;
 
 struct CombinedReading {
 

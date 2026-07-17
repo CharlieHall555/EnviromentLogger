@@ -1,4 +1,8 @@
 #include "domain/combined_reading.h"
+
+#include "sensors/pm_sensor.h"
+#include "sensors/temp_sensor.h"
+
 #include "debug.h"
 
 void dumpReading(const CombinedReading& combined)

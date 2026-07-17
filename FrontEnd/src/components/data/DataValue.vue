@@ -74,8 +74,6 @@ const trend = computed<"up" | "down" | "neutral" | null>(() => {
   const current = Number(props.value);
   const previous = Number(props.previousValue);
 
-
-
   if (!Number.isFinite(current) || !Number.isFinite(previous)) {
     return null;
   }
@@ -89,10 +87,6 @@ const trend = computed<"up" | "down" | "neutral" | null>(() => {
     ((current - previous) / Math.abs(previous)) * 100;
 
   if (Math.abs(percentageChange) <= props.trendThreshold) {
-    return "neutral";
-  }
-
-  if (Math.abs(percentageChange) <= 10) {
     return "neutral";
   }
 

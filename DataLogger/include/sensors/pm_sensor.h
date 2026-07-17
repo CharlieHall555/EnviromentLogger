@@ -1,7 +1,8 @@
 #pragma once
 #include <Arduino.h>
 #include <optional>
-#include "domain/combined_reading.h"
+
+struct CombinedReading;
 
 struct PMReading {
     int _1;
