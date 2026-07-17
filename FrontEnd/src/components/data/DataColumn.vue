@@ -2,8 +2,8 @@
 import { ref, computed } from "vue";
 import "@/assets/main.css";
 import router from "@/router";
-import { 
-  formatMetric, 
+import {
+  formatMetric,
   formatShortDateTime,
   getTemperatureClass,
   getHumidityClass,
@@ -60,12 +60,15 @@ const valueClass = computed(() => {
 </script>
 
 <template>
-    <p :class="valueClass">{{ displayValue }}</p>
+  <p class="data-text" :class="valueClass">
+    {{ displayValue }}
+  </p>
 </template>
 
 <style scoped>
 p {
   margin: 0;
-  font-weight: 600;
+  text-align: center;
+  justify-self: center;
 }
 </style>

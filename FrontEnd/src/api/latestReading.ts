@@ -28,14 +28,25 @@ export async function fetchReadingMaxPage(pageSize : number): Promise<PageSizeRe
   );
 }
 
-export async function fetchLatestReading(): Promise<SensorReading | null> {
-  try {
-    const response = await fetchReadingsPage(1, 1);
+export type LatestReadings = {
+  latest: SensorReading | null;
+  previous: SensorReading | null;
+};
 
-    return response.readings[0] ?? null;
+export async function fetchLatestReadings(): Promise<LatestReadings> {
+  try {
+    const response = await fetchReadingsPage(1, 2);
+
+    return {
+      latest: response.readings[0] ?? null,
+      previous: response.readings[1] ?? null
+    };
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
-      return null;
+      return {
+        latest: null,
+        previous: null
+      };
     }
 
     throw error;

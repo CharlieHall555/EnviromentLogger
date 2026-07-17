@@ -6,6 +6,7 @@ import { formatShortDateTime } from "@/utils/metricHelpers";
 
 const props = defineProps<{
   currentReading: SensorReading | null;
+  previousReading : SensorReading | null;
 }>();
 
 const measuredAtLabel = computed(() => {
@@ -31,6 +32,7 @@ const measuredAtLabel = computed(() => {
       <DataValue
         title="Temperature"
         :value="currentReading.temperature"
+        :previous-value="previousReading?.temperature"
         unit="°C"
         :clickable="true"
         readingType="temperature"
@@ -38,6 +40,7 @@ const measuredAtLabel = computed(() => {
       <DataValue
         title="Humidity"
         :value="currentReading.humidity"
+        :previous-value="previousReading?.humidity"
         unit="%"
         :clickable="true"
         readingType="humidity"
@@ -48,23 +51,29 @@ const measuredAtLabel = computed(() => {
       <DataValue
         title="PM1.0"
         :value="currentReading.pm1_0"
+        :previous-value="previousReading?.pm1_0"
         unit="µg/m³"
         :clickable="true"
         readingType="pm1_0"
+        :trend-threshold="0"
       />
       <DataValue
         title="PM2.5"
         :value="currentReading.pm2_5"
+        :previous-value="previousReading?.pm2_5"
         unit="µg/m³"
         :clickable="true"
         readingType="pm2_5"
+        :trend-threshold="0"
       />
       <DataValue
         title="PM10"
         :value="currentReading.pm10"
+        :previous-value="previousReading?.pm10"
         unit="µg/m³"
         :clickable="true"
         readingType="pm10"
+        :trend-threshold="0"
       />
     </div>
   </section>

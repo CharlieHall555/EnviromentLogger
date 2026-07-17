@@ -149,6 +149,14 @@ body {
   text-transform: uppercase;
 }
 
+.data-text {
+   font-weight: 600;
+}
+
+.data-header-text {
+   font-weight: 700;
+}
+
 .sensor-card p {
   margin: 0;
 
@@ -254,4 +262,15 @@ p.red-value,
 p.blue-value,
 .sensor-card p.blue-value {
   color: #2196d3 !important;
+}
+
+.page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.page-header {
+    margin-bottom: 2rem;
+    text-align: center;
 }

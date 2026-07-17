@@ -57,12 +57,8 @@ export function getTemperatureClass(value: MetricValue): string {
     return "blue-value";
   }
 
-  if (numericValue < 24) {
+  if (numericValue < 27) {
     return "green-value";
-  }
-
-  if (numericValue < 30) {
-    return "orange-value";
   }
 
   return "red-value";

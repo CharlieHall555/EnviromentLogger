@@ -4,7 +4,7 @@ import { fetchReadingsPage, fetchReadingMaxPage } from '@/api/latestReading';
 import DataColumn from '@/components/data/DataColumn.vue';
 import DataRow from '@/components/data/DataRow.vue';
 import { type ReadingType, type SensorReading } from '@/domain/sensorReading';
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { Line } from 'vue-chartjs';
 import {
@@ -18,7 +18,8 @@ import {
     Legend
 } from 'chart.js';
 import DataValue from '@/components/data/DataValue.vue';
-import { fetchLatestReading } from '@/api/latestReading';
+import { fetchLatestReadings } from '@/api/latestReading';
+import TableHeading from '@/components/data/TableHeading.vue';
 
 ChartJS.register(
     CategoryScale,
@@ -39,10 +40,18 @@ const maxPage = ref<number>(1);
 const loading = ref<boolean>(true);
 const readings = ref<SensorReading[]>([]);
 const latestReading = ref<SensorReading | null>(null);
+const previousReading = ref<SensorReading | null>(null);
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+let refreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
 const currentValue = computed(() => {
     if (!latestReading.value || !readingType.value) return null;
     return latestReading.value[readingType.value];
+});
+
+const previousValue = computed(() => {
+    if (!previousReading.value || !readingType.value) return null;
+    return previousReading.value[readingType.value];
 });
 
 const currentUnit = computed(() => {
@@ -82,7 +91,7 @@ const chartData = computed(() => {
                 data: readings.value.map(r => r[readingType.value!]).reverse(),
                 borderColor: '#38d996',
                 backgroundColor: 'rgba(56, 217, 150, 0.1)',
-                tension: 0.3
+                tension: 0
             }
         ]
     };
@@ -127,14 +136,31 @@ const chartOptions = computed(() => {
 });
 
 onMounted(async () => {
+    await refreshData();
+
+    refreshIntervalId = setInterval(() => {
+        void refreshData();
+    }, REFRESH_INTERVAL_MS);
+});
+
+onUnmounted(() => {
+    if (refreshIntervalId) {
+        clearInterval(refreshIntervalId);
+        refreshIntervalId = null;
+    }
+});
+
+async function refreshData() {
     await updateMaxPage();
     await loadLatestReading();
-    loadReadings();
-});
+    await loadReadings();
+}
 
 async function loadLatestReading() {
     try {
-        latestReading.value = await fetchLatestReading();
+        const readings = await fetchLatestReadings();
+        latestReading.value = readings.latest;
+        previousReading.value = readings.previous;
     } catch (err) {
         console.error('Failed to fetch latest reading:', err);
     }
@@ -197,6 +223,7 @@ async function loadReadings() {
             v-if="readingType && latestReading"
             :title="currentTitle"
             :value="currentValue"
+            :previous-value="previousValue"
             :unit="currentUnit"
             :readingType="readingType"
         />
@@ -232,6 +259,7 @@ async function loadReadings() {
             <div class="readings-list card">
                 <div v-if="loading" class="loading">Loading...</div>
                 <div v-else>
+                    <TableHeading :headings="['date' , readingType]" />
                     <div v-for="reading in readings" :key="reading.id" class="reading-item">
                         <DataRow v-bind="{ [readingType]: reading[readingType], measured_at: reading.measured_at }" />
                     </div>
@@ -246,16 +274,7 @@ async function loadReadings() {
 </template>
 
 <style scoped>
-.page-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
-}
 
-.page-header {
-    margin-bottom: 2rem;
-    text-align: center;
-}
 
 .page-header h1 {
     font-size: 2rem;

@@ -25,25 +25,38 @@ const pm2_5Value = computed(() => props.reading?.pm2_5 ?? props.pm2_5);
 const pm10Value = computed(() => props.reading?.pm10 ?? props.pm10);
 const measuredAtValue = computed(() => props.reading?.measured_at ?? props.measured_at);
 
+const columnCount = computed(() => {
+  return [
+    measuredAtValue.value,
+    temperatureValue.value,
+    humidityValue.value,
+    pm1_0Value.value,
+    pm2_5Value.value,
+    pm10Value.value
+  ].filter(value => value !== undefined).length;
+});
+
 </script>
 
-<template>  
-    <div class="data-row">
-        <DataColumn v-if="measuredAtValue !== undefined" :value="measuredAtValue" unit="" />
-        <DataColumn v-if="temperatureValue !== undefined" :value="temperatureValue" unit="°C" readingType="temperature" />
-        <DataColumn v-if="humidityValue !== undefined" :value="humidityValue" unit="%" readingType="humidity" />
-        <DataColumn v-if="pm1_0Value !== undefined" :value="pm1_0Value" unit="µg/m³" readingType="pm1_0" />
-        <DataColumn v-if="pm2_5Value !== undefined" :value="pm2_5Value" unit="µg/m³" readingType="pm2_5" />
-        <DataColumn v-if="pm10Value !== undefined" :value="pm10Value" unit="µg/m³" readingType="pm10" />
-    </div>
+<template>
+  <div
+    class="data-row"
+    :style="{ gridTemplateColumns: `repeat(${columnCount}, minmax(120px, 1fr))` }"
+  >
+    <DataColumn v-if="measuredAtValue !== undefined" :value="measuredAtValue" unit="" />
+    <DataColumn v-if="temperatureValue !== undefined" :value="temperatureValue" unit="°C" readingType="temperature" />
+    <DataColumn v-if="humidityValue !== undefined" :value="humidityValue" unit="%" readingType="humidity" />
+    <DataColumn v-if="pm1_0Value !== undefined" :value="pm1_0Value" unit="µg/m³" readingType="pm1_0" />
+    <DataColumn v-if="pm2_5Value !== undefined" :value="pm2_5Value" unit="µg/m³" readingType="pm2_5" />
+    <DataColumn v-if="pm10Value !== undefined" :value="pm10Value" unit="µg/m³" readingType="pm10" />
+  </div>
 </template>
 
 <style scoped>
 .data-row {
-    display: flex;
-    flex-direction: row;
-    gap: 1rem;
-    align-items: center;
-    justify-content: center;
+  display: grid;
+  gap: 1rem;
+  align-items: center;
+  width: 100%;
 }
 </style>

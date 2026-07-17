@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import router from "@/router";
-import { 
-  formatMetric, 
-  getTemperatureClass, 
+import {
+  formatMetric,
+  getTemperatureClass,
   getHumidityClass,
-  getPM1Class, 
-  getPM25Class, 
-  getPM10Class 
+  getPM1Class,
+  getPM25Class,
+  getPM10Class
 } from "@/utils/metricHelpers";
 import { type ReadingType } from "@/domain/sensorReading";
 
@@ -15,14 +15,17 @@ const props = withDefaults(
   defineProps<{
     title?: string;
     value?: number | string | null;
+    previousValue?: number | string | null;
     unit?: string;
     clickable?: boolean;
     readingType?: ReadingType;
+    trendThreshold?: number;
   }>(),
   {
     title: "Unknown",
     unit: "",
-    clickable: false
+    clickable: false,
+    trendThreshold: 10
   }
 );
 
@@ -58,11 +61,101 @@ function onClick() {
   }
 }
 
+const trend = computed<"up" | "down" | "neutral" | null>(() => {
+  if (
+    props.value === null ||
+    props.value === undefined ||
+    props.previousValue === null ||
+    props.previousValue === undefined
+  ) {
+    return null;
+  }
+
+  const current = Number(props.value);
+  const previous = Number(props.previousValue);
+
+
+
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) {
+    return null;
+  }
+
+  if (previous === 0) {
+    if (current === 0) return "neutral";
+    return current > 0 ? "up" : "down";
+  }
+
+  const percentageChange =
+    ((current - previous) / Math.abs(previous)) * 100;
+
+  if (Math.abs(percentageChange) <= props.trendThreshold) {
+    return "neutral";
+  }
+
+  if (Math.abs(percentageChange) <= 10) {
+    return "neutral";
+  }
+
+  return percentageChange > 0 ? "up" : "down";
+});
+
+const trendIcon = computed(() => {
+  switch (trend.value) {
+    case "up":
+      return "/up_arrow.svg";
+    case "down":
+      return "/down_arrow.svg";
+    case "neutral":
+      return "/neutral_arrow.svg";
+    default:
+      return null;
+  }
+});
+
+const trendAlt = computed(() => {
+  switch (trend.value) {
+    case "up":
+      return "Increasing";
+    case "down":
+      return "Decreasing";
+    case "neutral":
+      return "No significant change";
+    default:
+      return "";
+  }
+});
+
 </script>
 
 <template>
-    <div class="sensor-card clickable" @click="onClick">
-        <h3>{{ props.title }}</h3>
-        <p :class="valueClass">{{formatMetric(value , unit , 2)}}</p>
+  <div class="sensor-card clickable" @click="onClick">
+    <h3>{{ props.title }}</h3>
+
+    <div class="value-row">
+      <p :class="valueClass">
+        {{ formatMetric(value, unit, 2) }}
+      </p>
+
+      <img v-if="trendIcon" :src="trendIcon" :alt="trendAlt" class="trend-icon" />
     </div>
+  </div>
 </template>
+
+<style scoped>
+.value-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  font-size: 2rem;
+}
+
+.value-row p {
+  margin: 0;
+  font-size: inherit;
+}
+
+.trend-icon {
+  width: 1em;
+  height: 1em;
+}
+</style>
