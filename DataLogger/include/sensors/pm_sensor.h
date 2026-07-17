@@ -1,6 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include <optional>
+#include "domain/combined_reading.h"
 
 struct PMReading {
     int _1;
@@ -8,6 +9,10 @@ struct PMReading {
     int _10;
 };
 
+enum PMReadingQuality {
+    NORMAL,
+    ELEVATED,
+};
 
 class PMSensor{
 
@@ -23,6 +28,8 @@ class PMSensor{
         std::optional<PMReading> takeReading();
         std::optional<PMReading> takeAverageReading(int samples, int delay);
         static bool readingSanityCheck(const PMReading &reading);
+        static PMReadingQuality getReadingQuality(const PMReading &reading);
+        static PMReadingQuality getReadingQuality(const CombinedReading &reading);
 
     private:    
         HardwareSerial pmsSerial; // UART2

@@ -6,41 +6,63 @@
     <div class="page-container">
         <header class="page-header">
             <h1>About</h1>
-            <p>
-                Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean
-                massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam
-                felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede
-                justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a,
-                venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium. Integer tincidunt. Cras dapibus.
-                Vivamus elementum semper nisi. Aenean vulputate eleifend tellus. Aenean leo ligula, porttitor eu,
-                consequat vitae, eleifend ac, enim. Aliquam lorem ante, dapibus in, viverra quis, feugiat a, tellus.
-                Phasellus viverra nulla ut metus varius laoreet. Quisque rutrum. Aenean imperdiet. Etiam ultricies nisi
-                vel augue. Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus
-                eget condimentum rhoncus, sem quam semper libero, sit amet adipiscing sem neque sed ipsum. Nam quam
-                nunc, blandit vel, luctus pulvinar, hendrerit id, lorem. Maecenas nec odio et ante tincidunt tempus.
-                Donec vitae sapien ut libero venenatis faucibus. Nullam quis ante. Etiam sit amet orci eget eros
-                faucibus tincidunt. Duis leo. Sed fringilla mauris sit amet nibh. Donec sodales sagittis magna. Sed
-                consequat, leo eget bibendum sodales, augue velit cursus nunc,
-            </p>
         </header>
+        <section class="about-card">
+            <p>
+                This project is a full-stack air-quality monitoring system designed to collect, store, and display
+                environmental data over time.
+            </p>
+
+            <p>
+                An ESP32 reads temperature, humidity, pressure, and particulate matter levels using connected
+                sensors, including a BME280 and PMS5003. The device sends these readings to a backend API, where
+                they are stored in a PostgreSQL database for later analysis.
+            </p>
+
+            <p>
+                The frontend dashboard is built with Vue, TypeScript, and Chart.js. It displays the latest sensor
+                readings, historical data, status indicators, and graphs showing how conditions change over time.
+                The interface also includes light and dark themes and is designed to work across different screen
+                sizes.
+            </p>
+
+            <p>
+                The system includes hardware logging, error reporting, sensor retry handling, Wi-Fi reconnection,
+                and deep-sleep support to reduce power usage. Old readings and hardware logs can also be removed
+                automatically to prevent the database from growing indefinitely.
+            </p>
+
+            <p>
+                The main goal of the project is to create a reliable and accessible way to monitor indoor air
+                quality while developing practical experience with embedded systems, APIs, databases, deployment,
+                and modern frontend development.
+            </p>
+        </section>
+
     </div>
 </template>
 <style scoped>
 
-.p {
-    max-width: 600px;
-    padding: 16px;
+.about-card {
+    max-width: 700px;
+    padding: 1.5rem;
+    margin: 0 auto;
+}
 
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface);
+.about-card p {
+    margin: 0 0 1rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    text-align: center;
+}
 
-    text-align: left;
+.about-card p:last-child {
+    margin-bottom: 0;
 }
 
 .page-header h1 {
     font-size: 2rem;
     color: var(--text-primary);
-    margin-bottom: 0.5rem;
+    margin-bottom: 1rem;
 }
 </style>

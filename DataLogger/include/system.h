@@ -40,7 +40,10 @@ class LoggerSystem
         void startupRoutine();
 
         SleepSafeQueue<CombinedReading , 10> savedReadingQueue;
-        const int DEEP_SLEEP_TIME = 30 * 60 * 1000 * 1000;// microseconds (us);
+
+        const int DEFAULT_SLEEP_TIME = 30 * 60 * 1000 * 1000;
+        const int ELEVATED_SLEEP_TIME = 5 * 60 * 1000 * 1000;
+
     public:
         LoggerSystem();
         bool takeReading(CombinedReading &reading);

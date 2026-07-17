@@ -7,6 +7,7 @@ from extensions import limiter
 
 from routes.data_route import data_bp
 from routes.hardware_logging import hardware_log_bp
+from routes.admin_route import admin_bp
 
 version: float = 0.1
 health: str = "OK"
@@ -38,6 +39,7 @@ def getDbHealth():
 
 app.register_blueprint(data_bp)
 app.register_blueprint(hardware_log_bp)
+app.register_blueprint(admin_bp)
 
 print(config.debug)
 

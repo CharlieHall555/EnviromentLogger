@@ -8,6 +8,8 @@
 #include "domain/combined_reading.h"
 #include <optional>
 
+RTC_DATA_ATTR int deepSleepTime = 30 * 60 * 1000 * 1000; //default sleep time
+
 using json = nlohmann::json;
 
 
@@ -107,9 +109,14 @@ void LoggerSystem::begin()
         debug::quickLog("Skipping upload because reading failed");
     }
 
+    PMReadingQuality quality = pmSensor.getReadingQuality(nextReading);
+
+    if (quality == PMReadingQuality::NORMAL) deepSleepTime = DEFAULT_SLEEP_TIME;
+    else if (quality == PMReadingQuality::ELEVATED) deepSleepTime = ELEVATED_SLEEP_TIME; 
+
     debug::quickLog("Took reading entering sleep");
     pmSensor.sleep();
-    esp_deep_sleep(DEEP_SLEEP_TIME);
+    esp_deep_sleep(deepSleepTime);
 }
 
 void LoggerSystem::startupRoutine()

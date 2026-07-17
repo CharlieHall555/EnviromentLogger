@@ -22,3 +22,4 @@ class Config:
         self.admin_token = os.getenv("ADMIN_TOKEN")
         self.api_token = os.getenv("API_TOKEN")
         self.debug = _get_bool_env("DEBUG", default=False)
+        self.cron_token = os.getenv("CRON_TOKEN")

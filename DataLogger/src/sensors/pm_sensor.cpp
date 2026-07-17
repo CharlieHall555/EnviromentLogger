@@ -2,6 +2,7 @@
 #include "debug.h"
 #include "Arduino.h"
 #include <optional>
+#include "domain/combined_reading.h"
 
 static const size_t PMS_FRAME_LEN = 32;
 static const uint8_t PMS_START1 = 0x42;
@@ -17,6 +18,40 @@ bool PMSensor::readingSanityCheck(const PMReading &reading)
     if (reading._1 > 1000 || reading._2_5 > 1000 || reading._10 > 1000)
         return false;
     return true;
+}
+
+PMReadingQuality PMSensor::getReadingQuality(const PMReading& reading)
+{
+    constexpr int PM1_ELEVATED_THRESHOLD = 20;
+    constexpr int PM2_5_ELEVATED_THRESHOLD = 25;
+    constexpr int PM10_ELEVATED_THRESHOLD = 75;
+
+    if (
+        reading._1 > PM1_ELEVATED_THRESHOLD ||
+        reading._2_5 > PM2_5_ELEVATED_THRESHOLD ||
+        reading._10 > PM10_ELEVATED_THRESHOLD
+    ) {
+        return PMReadingQuality::ELEVATED;
+    }
+
+    return PMReadingQuality::NORMAL;
+}
+
+PMReadingQuality PMSensor::getReadingQuality(const CombinedReading& reading)
+{
+    constexpr int PM1_ELEVATED_THRESHOLD   = 20;
+    constexpr int PM2_5_ELEVATED_THRESHOLD = 25;
+    constexpr int PM10_ELEVATED_THRESHOLD  = 75;
+
+    if (
+        reading._1 >= PM1_ELEVATED_THRESHOLD ||
+        reading._2_5 >= PM2_5_ELEVATED_THRESHOLD ||
+        reading._10  >= PM10_ELEVATED_THRESHOLD
+    ) {
+        return PMReadingQuality::ELEVATED;
+    }
+
+    return PMReadingQuality::NORMAL;
 }
 
 bool PMSensor::setup()
