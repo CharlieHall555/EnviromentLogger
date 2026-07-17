@@ -249,6 +249,56 @@ def get_size():
         if "conn" in locals():
             conn.close()
 
+@data_bp.route("/day/size", methods=["GET"])
+def get_day_size():
+    date_value = request.args.get("date", type=str)
+    page_size = request.args.get("page_size", default=10, type=int)
+
+    if not date_value:
+        return error_response("date is required in YYYY-MM-DD format", 400)
+
+    if page_size is None:
+        return error_response("page_size must be an integer", 400)
+
+    page_size = min(max(page_size, 1), 100)
+
+    try:
+        day_start = datetime.strptime(date_value, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return error_response("date must be in YYYY-MM-DD format", 400)
+
+    day_end = day_start + timedelta(days=1)
+
+    try:
+        conn = database_connection.establish_connection()
+
+        with conn.cursor() as cur:
+            cur.execute(
+                '''
+                SELECT COUNT(*)
+                FROM "READINGS"
+                WHERE measured_at >= %s AND measured_at < %s;
+                ''',
+                (day_start, day_end)
+            )
+            total_rows = cur.fetchone()[0] # type: ignore
+
+        total_pages = math.ceil(total_rows / page_size)
+
+        return jsonify({
+            "date": date_value,
+            "total_size": total_rows,
+            "page_size": page_size,
+            "n_pages": total_pages
+        }), 200
+
+    except Exception as error:
+        return error_response(str(error), 500)
+
+    finally:
+        if "conn" in locals():
+            conn.close()
+
 @data_bp.route("/page", methods=["GET"])
 def get_page():
     page = request.args.get("page", default=1, type=int)
@@ -304,6 +354,73 @@ def get_page():
 
     finally:
         cur.close()
+        conn.close()
+
+@data_bp.route("/day/page", methods=["GET"])
+def get_day_page():
+    date_value = request.args.get("date", type=str)
+    page = request.args.get("page", default=1, type=int)
+    page_size = request.args.get("page_size", default=10, type=int)
+
+    if not date_value:
+        return error_response("date is required in YYYY-MM-DD format", 400)
+
+    try:
+        day_start = datetime.strptime(date_value, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return error_response("date must be in YYYY-MM-DD format", 400)
+
+    day_end = day_start + timedelta(days=1)
+
+    page = max(page, 1)
+    page_size = min(max(page_size, 1), 100)
+    offset = (page - 1) * page_size
+
+    try:
+        conn = database_connection.establish_connection()
+    except Exception:
+        return error_response("Database connection failed", 500)
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, measured_at, temperature, humidity, pm10, pm1_0, pm2_5, received_at
+                FROM "READINGS"
+                WHERE measured_at >= %s AND measured_at < %s
+                ORDER BY received_at DESC, id DESC
+                LIMIT %s OFFSET %s;
+                """,
+                (day_start, day_end, page_size, offset)
+            )
+
+            rows = cur.fetchall()
+
+        readings = []
+
+        for row in rows:
+            readings.append({
+                "id": row[0],
+                "measured_at": row[1],
+                "temperature": row[2],
+                "humidity": row[3],
+                "pm10": row[4],
+                "pm1_0": row[5],
+                "pm2_5": row[6],
+                "received_at": row[7]
+            })
+
+        return jsonify({
+            "date": date_value,
+            "page": page,
+            "page_size": page_size,
+            "readings": readings
+        }), 200
+
+    except Exception as error:
+        return error_response(str(error), 500)
+
+    finally:
         conn.close()
 
 @data_bp.route("/get_day", methods=["GET"])
