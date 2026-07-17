@@ -4,54 +4,18 @@ import {
   fetchLatestReading,
   type SensorReading,
 } from "../api/latestReading";
+import {
+  formatMetric,
+  getPM1Class,
+  getPM10Class,
+  getPM25Class,
+  getTemperatureClass,
+} from "../utils/metricHelpers";
 
 const latestReading = ref<SensorReading | null>(null);
 const isLoading = ref(false);
 const errorMessage = ref("");
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
-
-function toNumeric(value: number | string | null): number | null {
-  if (value === null || value === "") {
-    return null;
-  }
-
-  const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function getTemperatureClass(value: number | string | null): string {
-  const numericValue = toNumeric(value);
-  if (numericValue === null) {
-    return "";
-  }
-
-  if (numericValue < 16) {
-    return "temp-cool";
-  }
-
-  if (numericValue < 24) {
-    return "temp-mild";
-  }
-
-  if (numericValue < 30) {
-    return "temp-warm";
-  }
-
-  return "temp-hot";
-}
-
-function formatMetric(
-  value: number | string | null,
-  unit: string,
-  fractionDigits = 1
-): string {
-  const numericValue = toNumeric(value);
-  if (numericValue === null) {
-    return "-";
-  }
-
-  return `${numericValue.toFixed(fractionDigits)} ${unit}`;
-}
 
 function formatTimestamp(value: string | undefined): string {
   if (!value) {
@@ -114,13 +78,44 @@ onUnmounted(() => {
       <article class="metric">
         <span class="label">Temperature</span>
         <strong
-          class="temp-value"
+          class="data_value"
           :class="getTemperatureClass(latestReading.temperature)"
         >
           {{ formatMetric(latestReading.temperature, "C") }}
         </strong>
       </article>
 
+
+      <article class="metric">
+        <span class="label">PM10</span>
+        <strong
+          class="data_value"
+          :class="getPM10Class(latestReading.pm10)"
+        >
+          {{ formatMetric(latestReading.pm10, "μg/m") }}
+        </strong>
+      </article>
+
+      <article class="metric">
+        <span class="label">PM1.0</span>
+        <strong
+          class="data_value"
+          :class="getPM1Class(latestReading.pm1_0)"
+        >
+          {{ formatMetric(latestReading.pm1_0, "μg/m") }}
+        </strong>
+      </article>
+
+      <article class="metric">
+        <span class="label">PM2.5</span>
+        <strong
+          class="data_value"
+          :class="getPM25Class(latestReading.pm2_5)"
+        >
+          {{ formatMetric(latestReading.pm2_5, "μg/m") }}
+        </strong>
+      </article>
+    
       <article class="metric">
         <span class="label">Humidity</span>
         <strong>{{ formatMetric(latestReading.humidity, "%") }}</strong>
@@ -129,11 +124,6 @@ onUnmounted(() => {
       <article class="meta">
         <span class="label">Measured At</span>
         <strong>{{ measuredAtText }}</strong>
-      </article>
-
-      <article class="meta">
-        <span class="label">Received At</span>
-        <strong>{{ receivedAtText }}</strong>
       </article>
     </div>
   </section>

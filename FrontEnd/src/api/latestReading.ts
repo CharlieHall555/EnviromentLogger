@@ -1,12 +1,5 @@
-import { apiGet } from "./apiClient";
-
-export type SensorReading = {
-  id: number;
-  temperature: number | string | null;
-  humidity: number | string | null;
-  measured_at: string;
-  received_at: string;
-};
+import { ApiError, apiGet } from "./apiClient";
+import { type SensorReading } from "@/domain/sensorReading";
 
 type ReadingPageResponse = {
   page: number;
@@ -19,12 +12,32 @@ export async function fetchReadingsPage(
   pageSize = 10
 ): Promise<ReadingPageResponse> {
   return apiGet<ReadingPageResponse>(
-    `/reading_page?page=${page}&page_size=${pageSize}`
+    `/data/page?page=${page}&page_size=${pageSize}`
+  );
+}
+
+export type PageSizeReponse = {
+    "n_pages": number,
+    "page_size": number,
+    "total_size": number,
+};
+
+export async function fetchReadingMaxPage(pageSize : number): Promise<PageSizeReponse> {
+  return apiGet<PageSizeReponse>(
+    `/data/size?page_size=${pageSize}`
   );
 }
 
 export async function fetchLatestReading(): Promise<SensorReading | null> {
-  const response = await fetchReadingsPage(1, 1);
+  try {
+    const response = await fetchReadingsPage(1, 1);
 
-  return response.readings[0] ?? null;
+    return response.readings[0] ?? null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+
+    throw error;
+  }
 }

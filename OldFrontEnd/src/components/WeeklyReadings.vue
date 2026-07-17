@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { fetchWeeklySummary, type WeeklySummary } from "../api/readingSummaries";
+import { formatMetric, getTemperatureClass } from "../utils/metricHelpers";
 import WeeklyChart from "./WeeklyChart.vue";
 
 function formatDate(date: Date): string {
@@ -67,15 +68,6 @@ const weekLabel = computed(() => {
   return `${weeklySummary.value.weekStart} to ${weeklySummary.value.weekEnd}`;
 });
 
-function formatMetric(value: number | string | null): string {
-  const numericValue = toNumeric(value);
-  if (numericValue === null) {
-    return "-";
-  }
-
-  return numericValue.toFixed(1);
-}
-
 function formatRange(
   minValue: number | string | null,
   maxValue: number | string | null
@@ -83,40 +75,6 @@ function formatRange(
   const minText = formatMetric(minValue);
   const maxText = formatMetric(maxValue);
   return `[${minText} - ${maxText}]`;
-}
-
-function toNumeric(value: number | string | null): number | null {
-  if (value === null || value === "") {
-    return null;
-  }
-
-  const numericValue = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(numericValue)) {
-    return null;
-  }
-
-  return numericValue;
-}
-
-function getTemperatureClass(value: number | string | null): string {
-  const numericValue = toNumeric(value);
-  if (numericValue === null) {
-    return "";
-  }
-
-  if (numericValue < 16) {
-    return "temp-cool";
-  }
-
-  if (numericValue < 24) {
-    return "temp-mild";
-  }
-
-  if (numericValue < 30) {
-    return "temp-warm";
-  }
-
-  return "temp-hot";
 }
 
 function goToPreviousWeek() {
@@ -237,7 +195,7 @@ onUnmounted(() => {
               <div class="value-stack">
                 <span class="value-item">
                   <span class="value-label">Avg</span>
-                  <span class="temp-value" :class="getTemperatureClass(day.temperature_avg)">
+                  <span class="data_value" :class="getTemperatureClass(day.temperature_avg)">
                     {{ formatMetric(day.temperature_avg) }}
                   </span>
                 </span>

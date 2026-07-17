@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, ValidationError
 import logging
 from config import Config
 import math
+from main import limiter
 
 config = Config()
 
@@ -219,6 +220,7 @@ def add_reading():
     return "done" , 201
 
 @data_bp.route("/size", methods=["GET"])
+@limiter.limit("250 per hour; 20 per minute")
 def get_size():
     page_size = request.args.get("page_size", default=10, type=int)
 
@@ -250,6 +252,7 @@ def get_size():
             conn.close()
 
 @data_bp.route("/day/size", methods=["GET"])
+@limiter.limit("250 per hour; 20 per minute")
 def get_day_size():
     date_value = request.args.get("date", type=str)
     page_size = request.args.get("page_size", default=10, type=int)
@@ -300,6 +303,7 @@ def get_day_size():
             conn.close()
 
 @data_bp.route("/page", methods=["GET"])
+@limiter.limit("250 per hour; 20 per minute")
 def get_page():
     page = request.args.get("page", default=1, type=int)
     page_size = request.args.get("page_size", default=10, type=int)
@@ -357,6 +361,7 @@ def get_page():
         conn.close()
 
 @data_bp.route("/day/page", methods=["GET"])
+@limiter.limit("250 per hour; 20 per minute")
 def get_day_page():
     date_value = request.args.get("date", type=str)
     page = request.args.get("page", default=1, type=int)
@@ -424,6 +429,7 @@ def get_day_page():
         conn.close()
 
 @data_bp.route("/get_day", methods=["GET"])
+@limiter.limit("250 per hour; 20 per minute")
 def get_by_day():
     date_value = request.args.get("date", type=str)
 
