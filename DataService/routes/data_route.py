@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, ValidationError
 import logging
 from config import Config
 import math
-from main import limiter
+from extensions import limiter
 
 config = Config()
 

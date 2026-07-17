@@ -3,12 +3,10 @@ import psycopg2
 from config import Config
 import database_connection
 from flask_cors import CORS
+from extensions import limiter
 
 from routes.data_route import data_bp
 from routes.hardware_logging import hardware_log_bp
-
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 
 version: float = 0.1
 health: str = "OK"
@@ -16,13 +14,7 @@ config = Config()
 
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
-
-limiter = Limiter(
-    key_func=get_remote_address,
-    app=app,
-    default_limits=["200 per day", "60 per hour"],
-    storage_uri="memory://"
-)
+limiter.init_app(app)
 
 @app.route("/health", methods=["GET"])
 def getHealth():
